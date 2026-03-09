@@ -1,6 +1,7 @@
 import {
   VERTEX_SHADER,
   FRAGMENT_SHADER,
+  BLUR_FRAGMENT_SHADER,
   COMPOSITE_FRAGMENT_SHADER,
 } from './shaders'
 import {
@@ -68,8 +69,13 @@ export class LiquidGlassRenderer {
   // blendK animates to 0 so smin becomes min() = clean shape union.
   private mergeRelaxT: Map<string, number> = new Map() // 0 = smin, 1 = hard min
 
+  // Animated pressed intensity per component (0..1, smoothly interpolated)
+  private pressedT: Map<string, number> = new Map()
+
   private uniforms: Record<string, WebGLUniformLocation | null> = {}
   private compositeUniforms: Record<string, WebGLUniformLocation | null> = {}
+  private blurProgram: WebGLProgram
+  private blurUniforms: Record<string, WebGLUniformLocation | null> = {}
 
   // FBO for multi-pass rendering
   private glassFbo: WebGLFramebuffer | null = null
@@ -78,6 +84,14 @@ export class LiquidGlassRenderer {
   private compositeFboTex: WebGLTexture | null = null
   private fboWidth = 0
   private fboHeight = 0
+
+  // FBOs for two-pass Gaussian blur
+  private blurFboA: WebGLFramebuffer | null = null
+  private blurFboTexA: WebGLTexture | null = null
+  private blurFboB: WebGLFramebuffer | null = null
+  private blurFboTexB: WebGLTexture | null = null
+  private blurFboWidth = 0
+  private blurFboHeight = 0
 
   constructor(canvas: HTMLCanvasElement, bgSource: () => HTMLCanvasElement) {
     this.canvas = canvas
@@ -107,8 +121,17 @@ export class LiquidGlassRenderer {
       COMPOSITE_FRAGMENT_SHADER,
     )
     this.compositeProgram = linkProgram(gl, vs, cfs)
-    gl.deleteShader(vs)
     gl.deleteShader(cfs)
+
+    // Blur program (reuses same vertex shader)
+    const bfs = compileShader(
+      gl,
+      gl.FRAGMENT_SHADER,
+      BLUR_FRAGMENT_SHADER,
+    )
+    this.blurProgram = linkProgram(gl, vs, bfs)
+    gl.deleteShader(vs)
+    gl.deleteShader(bfs)
 
     // Fullscreen quad (shared by both programs via attrib location 0)
     const buffer = gl.createBuffer()
@@ -155,6 +178,10 @@ export class LiquidGlassRenderer {
         this.program,
         `u_thickness[${i}]`,
       )
+      this.uniforms[`u_pressed[${i}]`] = gl.getUniformLocation(
+        this.program,
+        `u_pressed[${i}]`,
+      )
     }
 
     // Cache composite uniform locations
@@ -167,6 +194,12 @@ export class LiquidGlassRenderer {
       this.compositeProgram,
       'u_glass',
     )
+
+    // Cache blur uniform locations
+    gl.useProgram(this.blurProgram)
+    this.blurUniforms['u_tex'] = gl.getUniformLocation(this.blurProgram, 'u_tex')
+    this.blurUniforms['u_dir'] = gl.getUniformLocation(this.blurProgram, 'u_dir')
+    this.blurUniforms['u_radius'] = gl.getUniformLocation(this.blurProgram, 'u_radius')
 
     // Background texture
     this.bgTexture = gl.createTexture()!
@@ -235,6 +268,71 @@ export class LiquidGlassRenderer {
     this.fboHeight = h
   }
 
+  // ── Blur FBO management ─────────────────────────────────
+
+  private ensureBlurFboSize(w: number, h: number): void {
+    if (this.blurFboWidth === w && this.blurFboHeight === h) return
+    const gl = this.gl
+
+    const setupFbo = (
+      fbo: WebGLFramebuffer | null,
+      tex: WebGLTexture | null,
+    ): [WebGLFramebuffer, WebGLTexture] => {
+      const f = fbo ?? gl.createFramebuffer()!
+      const t = tex ?? gl.createTexture()!
+      gl.bindTexture(gl.TEXTURE_2D, t)
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null)
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+      gl.bindFramebuffer(gl.FRAMEBUFFER, f)
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t, 0)
+      return [f, t]
+    }
+
+    ;[this.blurFboA, this.blurFboTexA] = setupFbo(this.blurFboA, this.blurFboTexA)
+    ;[this.blurFboB, this.blurFboTexB] = setupFbo(this.blurFboB, this.blurFboTexB)
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+    this.blurFboWidth = w
+    this.blurFboHeight = h
+  }
+
+  // ── Two-pass Gaussian blur ─────────────────────────────
+
+  private blurBackground(w: number, h: number): WebGLTexture {
+    const gl = this.gl
+    const radius = this.params.glassBlur
+
+    this.ensureBlurFboSize(w, h)
+    gl.useProgram(this.blurProgram)
+    gl.uniform1f(this.blurUniforms['u_radius']!, radius)
+    gl.uniform1i(this.blurUniforms['u_tex']!, 0)
+
+    // Pass 1: Horizontal blur — bgTexture → blurFboA
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.blurFboA)
+    gl.viewport(0, 0, w, h)
+    gl.clearColor(0, 0, 0, 0)
+    gl.clear(gl.COLOR_BUFFER_BIT)
+    gl.activeTexture(gl.TEXTURE0)
+    gl.bindTexture(gl.TEXTURE_2D, this.bgTexture)
+    gl.uniform2f(this.blurUniforms['u_dir']!, 1.0 / w, 0.0)
+    gl.drawArrays(gl.TRIANGLES, 0, 6)
+
+    // Pass 2: Vertical blur — blurFboA → blurFboB
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.blurFboB)
+    gl.viewport(0, 0, w, h)
+    gl.clearColor(0, 0, 0, 0)
+    gl.clear(gl.COLOR_BUFFER_BIT)
+    gl.bindTexture(gl.TEXTURE_2D, this.blurFboTexA!)
+    gl.uniform2f(this.blurUniforms['u_dir']!, 0.0, 1.0 / h)
+    gl.drawArrays(gl.TRIANGLES, 0, 6)
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+    return this.blurFboTexB!
+  }
+
   // ── Glass render pass ────────────────────────────────────
 
   private renderGlassPass(
@@ -296,6 +394,10 @@ export class LiquidGlassRenderer {
       gl.uniform1f(
         this.uniforms[`u_thickness[${i}]`]!,
         comp.thickness ?? 1.0,
+      )
+      gl.uniform1f(
+        this.uniforms[`u_pressed[${i}]`]!,
+        this.pressedT.get(comp.id) ?? 0,
       )
     }
 
@@ -383,11 +485,16 @@ export class LiquidGlassRenderer {
     const gl = this.gl
     gl.deleteProgram(this.program)
     gl.deleteProgram(this.compositeProgram)
+    gl.deleteProgram(this.blurProgram)
     gl.deleteTexture(this.bgTexture)
     if (this.glassFboTex) gl.deleteTexture(this.glassFboTex)
     if (this.compositeFboTex) gl.deleteTexture(this.compositeFboTex)
     if (this.glassFbo) gl.deleteFramebuffer(this.glassFbo)
     if (this.compositeFbo) gl.deleteFramebuffer(this.compositeFbo)
+    if (this.blurFboTexA) gl.deleteTexture(this.blurFboTexA)
+    if (this.blurFboTexB) gl.deleteTexture(this.blurFboTexB)
+    if (this.blurFboA) gl.deleteFramebuffer(this.blurFboA)
+    if (this.blurFboB) gl.deleteFramebuffer(this.blurFboB)
   }
 
   // ── Render loop ──────────────────────────────────────────
@@ -474,6 +581,26 @@ export class LiquidGlassRenderer {
       }
     }
 
+    // ── Animate pressed tint (smooth 0↔1) ────────
+    const PRESS_IN = 1 / 120   // reach 1.0 in ~120ms
+    const PRESS_OUT = 1 / 200  // fade out in ~200ms
+    for (const comp of this.components) {
+      const cur = this.pressedT.get(comp.id) ?? 0
+      const target = comp.pressed ? 1 : 0
+      if (target > cur) {
+        this.pressedT.set(comp.id, Math.min(1, cur + PRESS_IN * dt))
+      } else if (target < cur) {
+        const next = Math.max(0, cur - PRESS_OUT * dt)
+        if (next > 0) this.pressedT.set(comp.id, next)
+        else this.pressedT.delete(comp.id)
+      }
+    }
+
+    // ── Pre-blur background (two-pass Gaussian) ────────
+    // The blurred texture has the same Y orientation as bgTexture
+    // (canvas-uploaded, needs flipBg=1.0)
+    const blurredBg = this.blurBackground(w, h)
+
     // Split components by layer
     const layer0 = this.components.filter((c) => (c.layer ?? 0) === 0)
     const layer1 = this.components.filter((c) => (c.layer ?? 0) === 1)
@@ -482,7 +609,7 @@ export class LiquidGlassRenderer {
       // Single pass — all components on layer 0
       this.renderGlassPass(
         layer0,
-        this.bgTexture,
+        blurredBg,
         1.0,
         null,
         w,
@@ -496,7 +623,7 @@ export class LiquidGlassRenderer {
       // Pass 1a: Render layer 0 to FBO (for compositing into layer 1's bg)
       this.renderGlassPass(
         layer0,
-        this.bgTexture,
+        blurredBg,
         1.0,
         this.glassFbo,
         w,
@@ -507,7 +634,7 @@ export class LiquidGlassRenderer {
       // Pass 1b: Render layer 0 to screen (so the card is visible)
       this.renderGlassPass(
         layer0,
-        this.bgTexture,
+        blurredBg,
         1.0,
         null,
         w,
@@ -515,9 +642,9 @@ export class LiquidGlassRenderer {
         now,
       )
 
-      // Composite: blend original bg + layer 0 glass → FBO B
+      // Composite: blend blurred bg + layer 0 glass → FBO B
       this.renderCompositePass(
-        this.bgTexture,
+        blurredBg,
         this.glassFboTex!,
         this.compositeFbo,
         w,

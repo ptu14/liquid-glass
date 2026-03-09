@@ -23,6 +23,7 @@ uniform vec4 u_btns[MAX_BTNS];
 uniform float u_blendK[MAX_BTNS];
 uniform float u_radii[MAX_BTNS];
 uniform float u_thickness[MAX_BTNS];
+uniform float u_pressed[MAX_BTNS];
 uniform float u_blend;
 uniform float u_dispStr;
 uniform float u_aberr;
@@ -55,29 +56,6 @@ vec3 sampleBg(vec2 uv) {
   return texture2D(u_bg, vec2(uv.x, sy)).rgb;
 }
 
-// ── Poisson-disk blur (13 taps) ─────────────────────
-vec3 blurBg(vec2 center, float radius) {
-  // 13-tap Poisson disk, pre-normalized
-  vec3 acc = sampleBg(center);
-  vec2 px = 1.0 / u_res;
-  vec2 offsets[12];
-  offsets[0]  = vec2(-0.326, -0.406);
-  offsets[1]  = vec2(-0.840, -0.074);
-  offsets[2]  = vec2(-0.696,  0.457);
-  offsets[3]  = vec2(-0.203,  0.621);
-  offsets[4]  = vec2( 0.962, -0.195);
-  offsets[5]  = vec2( 0.473, -0.480);
-  offsets[6]  = vec2( 0.519,  0.767);
-  offsets[7]  = vec2( 0.185, -0.893);
-  offsets[8]  = vec2( 0.507,  0.064);
-  offsets[9]  = vec2(-0.321,  0.932);
-  offsets[10] = vec2(-0.792, -0.598);
-  offsets[11] = vec2( 0.326,  0.406);
-  for (int i = 0; i < 12; i++) {
-    acc += sampleBg(center + offsets[i] * px * radius);
-  }
-  return acc / 13.0;
-}
 
 void main() {
   vec2 uv    = v_uv;
@@ -85,14 +63,25 @@ void main() {
   vec2 pxDOM = vec2(px.x, u_res.y - px.y); // DOM space (Y=0 at top)
 
   // 1. Metaball SDF in DOM space
+  // Per-pixel localK: only pixels near an unlocked component use smin.
+  // Pixels far from any unlocked component stay sharp (min).
+  float localK = 0.0;
+  for (int i = 0; i < MAX_BTNS; i++) {
+    if (i >= u_btnCount) break;
+    float k = u_blendK[i];
+    if (k < 0.5) continue;
+    vec2 center = u_btns[i].xy + u_btns[i].zw * 0.5;
+    vec2 half_size = u_btns[i].zw * 0.5;
+    float s = sdRoundedRect(pxDOM - center, half_size, u_radii[i]);
+    if (s < k * 2.0) localK = max(localK, k);
+  }
   float field = 1e9;
   for (int i = 0; i < MAX_BTNS; i++) {
     if (i >= u_btnCount) break;
     vec2 center = u_btns[i].xy + u_btns[i].zw * 0.5;
     vec2 half_size = u_btns[i].zw * 0.5;
     float s = sdRoundedRect(pxDOM - center, half_size, u_radii[i]);
-    float k = u_blendK[i];
-    field = (k < 0.5) ? min(field, s) : smin(field, s, k);
+    field = (localK < 0.5) ? min(field, s) : smin(field, s, localK);
   }
 
   // Early discard for pixels far from any component
@@ -112,7 +101,7 @@ void main() {
     }
   }
 
-  // 2. SDF normal (numerical, DOM space)
+  // 2. SDF normal (numerical, DOM space) — uses same localK
   float e = 1.5;
   float f_r = 1e9, f_l = 1e9, f_u = 1e9, f_d = 1e9;
   for (int i = 0; i < MAX_BTNS; i++) {
@@ -123,13 +112,12 @@ void main() {
     float sl = sdRoundedRect(pxDOM + vec2(-e, 0) - c, h, u_radii[i]);
     float su = sdRoundedRect(pxDOM + vec2(0, -e) - c, h, u_radii[i]);
     float sd = sdRoundedRect(pxDOM + vec2(0,  e) - c, h, u_radii[i]);
-    float k  = u_blendK[i];
-    if (k < 0.5) {
+    if (localK < 0.5) {
       f_r = min(f_r, sr); f_l = min(f_l, sl);
       f_u = min(f_u, su); f_d = min(f_d, sd);
     } else {
-      f_r = smin(f_r, sr, k); f_l = smin(f_l, sl, k);
-      f_u = smin(f_u, su, k); f_d = smin(f_d, sd, k);
+      f_r = smin(f_r, sr, localK); f_l = smin(f_l, sl, localK);
+      f_u = smin(f_u, su, localK); f_d = smin(f_d, sd, localK);
     }
   }
   vec2 nDOM = normalize(vec2(f_r - f_l, f_d - f_u));
@@ -142,11 +130,10 @@ void main() {
   vec2 dispUV = uv + nUV * edgeMask * u_dispStr * u_refr;
   dispUV = clamp(dispUV, 0.001, 0.999);
 
-  // 4. Frosted glass blur
-  float blurRadius = 2.0;
-  float glassMask  = smoothstep(2.0, -4.0, field);
+  // 4. Frosted glass — bg is already pre-blurred via two-pass Gaussian
+  float glassMask = smoothstep(2.0, -4.0, field);
 
-  vec3 col = blurBg(dispUV, blurRadius * glassMask);
+  vec3 col = sampleBg(dispUV);
 
   // 5. Chromatic aberration on edges
   vec2 aber = nUV * u_aberr * edgeMask;
@@ -173,6 +160,22 @@ void main() {
   // Brighten (thin material) — add white overlay
   col += vec3(0.14) * brightAmount * tintMask;
 
+  // 6b. Pressed blue tint — follows merged SDF shape, animated 0→1
+  float pressedInf = 0.0;
+  for (int i = 0; i < MAX_BTNS; i++) {
+    if (i >= u_btnCount) break;
+    if (u_pressed[i] < 0.01) continue;
+    vec2 pc = u_btns[i].xy + u_btns[i].zw * 0.5;
+    vec2 ph = u_btns[i].zw * 0.5;
+    float ps = sdRoundedRect(pxDOM - pc, ph, u_radii[i]);
+    // Soft falloff: strong inside, fades ~30px outward into merged neighbors
+    float inf = smoothstep(30.0, -10.0, ps) * u_pressed[i];
+    pressedInf = max(pressedInf, inf);
+  }
+  // Apply blue tint only inside the glass shape
+  vec3 pressedCol = vec3(0.18, 0.42, 0.95);
+  col = mix(col, col * 0.7 + pressedCol * 0.35, pressedInf * glassMask);
+
   // 7. Subtle surface grain (frosted texture)
   float grain = (hash(pxDOM + fract(u_time * 0.5)) - 0.5) * 0.04 * tintMask;
   col += grain;
@@ -190,6 +193,43 @@ void main() {
   float alpha = smoothstep(fw, -fw, field);
 
   gl_FragColor = vec4(col, alpha);
+}
+`
+
+// Two-pass separable Gaussian blur (15-tap, σ ≈ radius/3)
+// u_dir encodes direction + pixel size: (1/w, 0) horizontal, (0, 1/h) vertical
+// u_radius controls blur spread in pixels
+export const BLUR_FRAGMENT_SHADER = `
+precision highp float;
+uniform sampler2D u_tex;
+uniform vec2 u_dir;
+uniform float u_radius;
+varying vec2 v_uv;
+
+void main() {
+  // 15-tap Gaussian (center + 7 pairs), σ_tap ≈ 2.33
+  // Weights normalized so sum = 1.0
+  float spread = u_radius / 7.0;
+
+  vec3 sum = texture2D(u_tex, v_uv).rgb * 0.1715;
+
+  vec2 d1 = u_dir * spread * 1.0;
+  vec2 d2 = u_dir * spread * 2.0;
+  vec2 d3 = u_dir * spread * 3.0;
+  vec2 d4 = u_dir * spread * 4.0;
+  vec2 d5 = u_dir * spread * 5.0;
+  vec2 d6 = u_dir * spread * 6.0;
+  vec2 d7 = u_dir * spread * 7.0;
+
+  sum += (texture2D(u_tex, v_uv + d1).rgb + texture2D(u_tex, v_uv - d1).rgb) * 0.1564;
+  sum += (texture2D(u_tex, v_uv + d2).rgb + texture2D(u_tex, v_uv - d2).rgb) * 0.1187;
+  sum += (texture2D(u_tex, v_uv + d3).rgb + texture2D(u_tex, v_uv - d3).rgb) * 0.0748;
+  sum += (texture2D(u_tex, v_uv + d4).rgb + texture2D(u_tex, v_uv - d4).rgb) * 0.0393;
+  sum += (texture2D(u_tex, v_uv + d5).rgb + texture2D(u_tex, v_uv - d5).rgb) * 0.0172;
+  sum += (texture2D(u_tex, v_uv + d6).rgb + texture2D(u_tex, v_uv - d6).rgb) * 0.0062;
+  sum += (texture2D(u_tex, v_uv + d7).rgb + texture2D(u_tex, v_uv - d7).rgb) * 0.0019;
+
+  gl_FragColor = vec4(sum, 1.0);
 }
 `
 

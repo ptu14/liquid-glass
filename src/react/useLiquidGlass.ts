@@ -9,18 +9,21 @@ export interface UseLiquidGlassOptions {
   thickness?: number
   /** Render layer. 0 = base (default), 1 = rendered on top of layer 0. */
   layer?: number
+  /** Whether this component is currently pressed (triggers blue tint in shader). */
+  pressed?: boolean
 }
 
 export interface UseLiquidGlassReturn {
   ref: React.RefObject<HTMLElement | null>
   locked: boolean
   toggleLock: () => void
+  setLocked: (locked: boolean) => void
 }
 
 export function useLiquidGlass(
   options: UseLiquidGlassOptions = {},
 ): UseLiquidGlassReturn {
-  const { borderRadius = 100, initialLocked = false, thickness = 1.0, layer = 0 } = options
+  const { borderRadius = 100, initialLocked = false, thickness = 1.0, layer = 0, pressed = false } = options
   const id = useId()
   const ref = useRef<HTMLElement | null>(null)
   const [locked, setLocked] = useState(initialLocked)
@@ -37,6 +40,9 @@ export function useLiquidGlass(
   const layerRef = useRef(layer)
   layerRef.current = layer
 
+  const pressedRef = useRef(pressed)
+  pressedRef.current = pressed
+
   const getData = useCallback((): GlassComponentData => {
     const el = ref.current
     const rect = el
@@ -50,6 +56,7 @@ export function useLiquidGlass(
       locked: lockedRef.current,
       thickness: thicknessRef.current,
       layer: layerRef.current,
+      pressed: pressedRef.current,
     }
   }, [id])
 
@@ -62,5 +69,5 @@ export function useLiquidGlass(
     setLocked((prev) => !prev)
   }, [])
 
-  return { ref, locked, toggleLock }
+  return { ref, locked, toggleLock, setLocked }
 }

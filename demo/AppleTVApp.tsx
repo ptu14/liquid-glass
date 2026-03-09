@@ -120,7 +120,7 @@ export function AppleTVApp() {
       </div>
 
       {/* Glass overlay */}
-      <LiquidGlassProvider bgElement={bgRef} bgImage="./bg-scene.png">
+      <LiquidGlassProvider bgElement={bgRef} bgImage="./images/bg.jpg">
         {/* Full-width footer — merges with bottom card when scrolled to end */}
         <ScrollableGlassFooter markerRef={footerMarkerRef} />
 

@@ -99,7 +99,7 @@ export function App() {
       </LiquidGlassProvider>
 
       <div className="hint">
-        drag buttons &middot; double-click = toggle merge lock
+        drag buttons &middot; click = expand &amp; merge
       </div>
     </>
   )
