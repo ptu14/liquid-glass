@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Liquid Glass Demo</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body, #root { width: 100%; height: 100%; overflow: hidden; }
+body { font-family: 'Helvetica Neue', Helvetica, sans-serif; }
+
+/* ── HTML background (z:0) ──────────────────────── */
+#html-bg {
+  position: fixed; inset: 0; z-index: 0;
+  background:
+    radial-gradient(ellipse 60% 50% at 15% 25%, #2d0057 0%, transparent 60%),
+    radial-gradient(ellipse 50% 60% at 85% 75%, #002855 0%, transparent 60%),
+    radial-gradient(ellipse 70% 40% at 50% 55%, #003322 0%, transparent 55%),
+    linear-gradient(160deg, #080010 0%, #0a0a0a 100%);
+}
+.bg-stripes {
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(45deg, transparent 0px, transparent 38px, rgba(255,255,255,0.025) 38px, rgba(255,255,255,0.025) 40px);
+}
+.bg-grid {
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+.orb { position: absolute; border-radius: 50%; will-change: transform; }
+.orb-1 { width:500px; height:500px; top:-100px; left:-100px; background: radial-gradient(circle, rgba(139,92,246,0.5) 0%, transparent 70%); animation: o1 12s ease-in-out infinite; }
+.orb-2 { width:400px; height:400px; bottom:-80px; right:-80px; background: radial-gradient(circle, rgba(6,182,212,0.45) 0%, transparent 70%); animation: o2 15s ease-in-out infinite; }
+.orb-3 { width:350px; height:350px; top:40%; left:35%; background: radial-gradient(circle, rgba(16,185,129,0.35) 0%, transparent 70%); animation: o3 10s ease-in-out infinite; }
+.orb-4 { width:280px; height:280px; top:20%; right:20%; background: radial-gradient(circle, rgba(245,158,11,0.3) 0%, transparent 70%); animation: o4 13s ease-in-out infinite; }
+@keyframes o1 { 0%,100%{transform:translate(0,0)} 33%{transform:translate(80px,60px)} 66%{transform:translate(40px,-40px)} }
+@keyframes o2 { 0%,100%{transform:translate(0,0)} 33%{transform:translate(-60px,-80px)} 66%{transform:translate(30px,50px)} }
+@keyframes o3 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-50px,70px)} }
+@keyframes o4 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(60px,40px)} }
+.bg-typography {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; justify-content: space-between;
+  padding: 5vh 5vw; pointer-events: none; user-select: none;
+}
+.bg-typography h1 {
+  font-size: clamp(4rem, 12vw, 11rem); font-weight: 900;
+  color: rgba(255,255,255,0.07); line-height: 0.9;
+  letter-spacing: -0.03em; text-transform: uppercase;
+}
+.bg-typography h1.right { text-align: right; }
+
+/* ── Hint ─────────────────────────────────────── */
+.hint {
+  position: fixed; top: 24px; left: 50%; transform: translateX(-50%);
+  z-index: 100; color: rgba(255,255,255,0.25);
+  font-size: 0.7rem; letter-spacing: 0.2em; text-transform: uppercase;
+  pointer-events: none;
+}
+</style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module" src="./main.tsx"></script>
+</body>
+</html>
