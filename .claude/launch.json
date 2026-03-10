@@ -6,6 +6,12 @@
       "runtimeExecutable": "npx",
       "runtimeArgs": ["vite", "--host", "127.0.0.1"],
       "port": 5173
+    },
+    {
+      "name": "demo-angular",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["vite", "--config", "demo-angular/vite.config.ts", "--host", "127.0.0.1"],
+      "port": 5174
     }
   ]
 }

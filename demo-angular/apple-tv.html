@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Liquid Glass — Apple TV Demo (Angular)</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; }
+body { font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', Helvetica, sans-serif; }
+
+/* ── Fixed background image ──────────────────── */
+#scene-bg {
+  position: fixed; inset: 0; z-index: 0;
+  background: url('./images/bg.jpg') center/cover no-repeat;
+  background-color: #0d0d1a;
+}
+
+/* ── Scrollable page content ─────────────────── */
+.page-content {
+  position: relative; z-index: 1;
+  min-height: 100vh;
+  color: white;
+  padding: 80px 48px 0;
+}
+.page-content h1 {
+  font-size: 3.5rem; font-weight: 800;
+  letter-spacing: -0.03em;
+  margin-bottom: 16px;
+}
+.page-content .subtitle {
+  font-size: 1.2rem; font-weight: 400;
+  color: rgba(255,255,255,0.6);
+  margin-bottom: 48px;
+  max-width: 500px; line-height: 1.6;
+}
+.show-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 24px;
+  margin-bottom: 48px;
+}
+.show-card {
+  aspect-ratio: 16/9;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.10);
+  display: flex; flex-direction: column; justify-content: flex-end;
+  padding: 14px 16px;
+  position: relative; overflow: hidden;
+  background-color: #1a1a2a;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.show-card:hover {
+  transform: scale(1.03);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  border-color: rgba(255,255,255,0.20);
+}
+.show-card::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.1) 50%, transparent 100%);
+  pointer-events: none;
+}
+.show-label {
+  position: relative; z-index: 1;
+  font-size: 0.85rem; font-weight: 600;
+  color: rgba(255,255,255,0.9);
+  text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+}
+.progress-bar {
+  position: relative; z-index: 1;
+  width: 100%; height: 3px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 2px;
+  margin-top: 8px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: rgba(255,255,255,0.8);
+  border-radius: 2px;
+}
+.section-title {
+  font-size: 1.3rem; font-weight: 700;
+  margin-bottom: 20px;
+  color: rgba(255,255,255,0.85);
+}
+
+/* ── Footer glass card ─── */
+.footer-marker {
+  height: 60px;
+}
+.footer-glass {
+  position: fixed;
+  pointer-events: none;
+  z-index: 20;
+}
+.footer-inner {
+  display: flex; align-items: center; justify-content: center;
+  padding: 18px 28px;
+  color: rgba(255,255,255,0.6);
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+/* ── Search bar ─────────────────────────────── */
+.search-area {
+  position: fixed; top: 24px; right: 48px;
+  z-index: 25; pointer-events: auto;
+  display: flex; align-items: center; gap: 8px;
+}
+.search-icon {
+  position: absolute; left: 12px; top: 50%;
+  transform: translateY(-50%);
+  width: 16px; height: 16px;
+  color: rgba(255,255,255,0.45);
+  z-index: 30; pointer-events: none;
+}
+.search-area liquid-glass-input input {
+  padding-left: 36px;
+}
+.icon-btn {
+  aspect-ratio: 1;
+  width: 44px;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Info card layout ────────────────────────── */
+.card-area {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  z-index: 15; padding: 0 48px 40px;
+  pointer-events: none;
+}
+.card-area > * { pointer-events: auto; }
+
+.tabs-row {
+  display: flex; gap: 4px;
+  margin-bottom: 4px;
+  padding-left: 8px;
+}
+
+.info-card-inner {
+  display: flex; gap: 28px; padding: 24px 28px;
+  align-items: flex-start;
+  color: white;
+}
+
+.thumbnail {
+  width: 160px; height: 120px; border-radius: 12px; flex-shrink: 0;
+  overflow: hidden;
+  background: url('./images/thumb-1069.jpg') center/cover no-repeat;
+  background-color: #1a0a2a;
+  position: relative;
+}
+
+.meta { flex: 1; min-width: 0; }
+.meta h2 {
+  font-size: 1.4rem; font-weight: 700;
+  margin-bottom: 8px; letter-spacing: -0.01em;
+}
+.meta p {
+  font-size: 0.85rem; line-height: 1.5;
+  color: rgba(255,255,255,0.7);
+  margin-bottom: 10px;
+  display: -webkit-box; -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical; overflow: hidden;
+}
+.meta .genre {
+  font-size: 0.75rem; color: rgba(255,255,255,0.45);
+  letter-spacing: 0.02em;
+}
+
+.actions {
+  display: flex; flex-direction: column; gap: 8px;
+  flex-shrink: 0; align-self: center;
+}
+.actions liquid-glass-button {
+  display: flex; align-items: center; gap: 8px;
+  min-width: 180px; justify-content: center;
+}
+.action-icon {
+  width: 18px; height: 18px; display: inline-flex;
+  align-items: center; justify-content: center;
+  font-size: 14px;
+}
+</style>
+</head>
+<body>
+  <app-apple-tv></app-apple-tv>
+  <script type="module" src="./apple-tv-main.ts"></script>
+</body>
+</html>

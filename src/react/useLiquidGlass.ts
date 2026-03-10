@@ -11,6 +11,8 @@ export interface UseLiquidGlassOptions {
   layer?: number
   /** Whether this component is currently pressed (triggers blue tint in shader). */
   pressed?: boolean
+  /** RGB tint colour [0–1]. Tints glass at rest; darkens on press. */
+  tintColor?: [number, number, number]
 }
 
 export interface UseLiquidGlassReturn {
@@ -23,7 +25,7 @@ export interface UseLiquidGlassReturn {
 export function useLiquidGlass(
   options: UseLiquidGlassOptions = {},
 ): UseLiquidGlassReturn {
-  const { borderRadius = 100, initialLocked = false, thickness = 1.0, layer = 0, pressed = false } = options
+  const { borderRadius = 100, initialLocked = false, thickness = 1.0, layer = 0, pressed = false, tintColor } = options
   const id = useId()
   const ref = useRef<HTMLElement | null>(null)
   const [locked, setLocked] = useState(initialLocked)
@@ -43,6 +45,9 @@ export function useLiquidGlass(
   const pressedRef = useRef(pressed)
   pressedRef.current = pressed
 
+  const tintColorRef = useRef(tintColor)
+  tintColorRef.current = tintColor
+
   const getData = useCallback((): GlassComponentData => {
     const el = ref.current
     const rect = el
@@ -57,6 +62,7 @@ export function useLiquidGlass(
       thickness: thicknessRef.current,
       layer: layerRef.current,
       pressed: pressedRef.current,
+      tintColor: tintColorRef.current,
     }
   }, [id])
 

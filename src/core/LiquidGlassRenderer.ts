@@ -182,6 +182,10 @@ export class LiquidGlassRenderer {
         this.program,
         `u_pressed[${i}]`,
       )
+      this.uniforms[`u_tintColor[${i}]`] = gl.getUniformLocation(
+        this.program,
+        `u_tintColor[${i}]`,
+      )
     }
 
     // Cache composite uniform locations
@@ -390,7 +394,10 @@ export class LiquidGlassRenderer {
       const relaxT = this.mergeRelaxT.get(comp.id) ?? 0
       if (relaxT > 0) animatedK *= 1 - relaxT
       gl.uniform1f(this.uniforms[`u_blendK[${i}]`]!, animatedK)
-      gl.uniform1f(this.uniforms[`u_radii[${i}]`]!, comp.borderRadius)
+      // Clamp borderRadius so it never exceeds half the smallest dimension,
+      // otherwise the SDF inverts and the glass disappears.
+      const maxR = Math.min(rect.width, rect.height) / 2
+      gl.uniform1f(this.uniforms[`u_radii[${i}]`]!, Math.min(comp.borderRadius, maxR))
       gl.uniform1f(
         this.uniforms[`u_thickness[${i}]`]!,
         comp.thickness ?? 1.0,
@@ -399,6 +406,8 @@ export class LiquidGlassRenderer {
         this.uniforms[`u_pressed[${i}]`]!,
         this.pressedT.get(comp.id) ?? 0,
       )
+      const tc = comp.tintColor ?? [0, 0, 0]
+      gl.uniform3f(this.uniforms[`u_tintColor[${i}]`]!, tc[0], tc[1], tc[2])
     }
 
     gl.drawArrays(gl.TRIANGLES, 0, 6)

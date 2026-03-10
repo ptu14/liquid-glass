@@ -10,6 +10,8 @@ export interface GlassComponentData {
   layer: number
   /** Whether this component is currently pressed (for blue tint in shader). */
   pressed: boolean
+  /** RGB tint colour [0–1]. When set, the glass is tinted at rest; on press the tint darkens. */
+  tintColor?: [number, number, number]
 }
 
 export interface GlassParams {
@@ -49,4 +51,4 @@ export const DEFAULT_GLASS_PARAMS: GlassParams = {
   mergeOnOverlap: true,
 }
 
-export const MAX_BTNS = 8
+export const MAX_BTNS = 16

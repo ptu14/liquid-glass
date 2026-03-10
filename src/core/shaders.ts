@@ -24,6 +24,7 @@ uniform float u_blendK[MAX_BTNS];
 uniform float u_radii[MAX_BTNS];
 uniform float u_thickness[MAX_BTNS];
 uniform float u_pressed[MAX_BTNS];
+uniform vec3 u_tintColor[MAX_BTNS];
 uniform float u_blend;
 uniform float u_dispStr;
 uniform float u_aberr;
@@ -160,21 +161,28 @@ void main() {
   // Brighten (thin material) — add white overlay
   col += vec3(0.14) * brightAmount * tintMask;
 
-  // 6b. Pressed blue tint — follows merged SDF shape, animated 0→1
-  float pressedInf = 0.0;
+  // 6b. Per-component tint — always visible at base, darkens on press
+  float tintInf = 0.0;
+  vec3 tintCol = vec3(0.0);
   for (int i = 0; i < MAX_BTNS; i++) {
     if (i >= u_btnCount) break;
-    if (u_pressed[i] < 0.01) continue;
+    float tintSum = u_tintColor[i].r + u_tintColor[i].g + u_tintColor[i].b;
+    if (tintSum < 0.01) continue;
     vec2 pc = u_btns[i].xy + u_btns[i].zw * 0.5;
     vec2 ph = u_btns[i].zw * 0.5;
     float ps = sdRoundedRect(pxDOM - pc, ph, u_radii[i]);
-    // Soft falloff: strong inside, fades ~30px outward into merged neighbors
-    float inf = smoothstep(30.0, -10.0, ps) * u_pressed[i];
-    pressedInf = max(pressedInf, inf);
+    float inf = smoothstep(30.0, -10.0, ps);
+    // Base strength + boosted on press
+    float strength = mix(0.25, 0.55, u_pressed[i]);
+    float w = inf * strength;
+    if (w > tintInf) {
+      tintInf = w;
+      tintCol = u_tintColor[i];
+    }
   }
-  // Apply blue tint only inside the glass shape
-  vec3 pressedCol = vec3(0.18, 0.42, 0.95);
-  col = mix(col, col * 0.7 + pressedCol * 0.35, pressedInf * glassMask);
+  // Darken more on press: 0.88 at rest → 0.62 pressed
+  float tintDark = mix(0.88, 0.62, tintInf);
+  col = mix(col, col * tintDark + tintCol * tintInf * 0.55, step(0.001, tintInf) * glassMask);
 
   // 7. Subtle surface grain (frosted texture)
   float grain = (hash(pxDOM + fract(u_time * 0.5)) - 0.5) * 0.04 * tintMask;

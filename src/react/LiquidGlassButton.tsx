@@ -7,6 +7,15 @@ function rubberBand(delta: number, strength: number, maxPx: number): number {
   return (raw * maxPx) / (maxPx + Math.abs(raw))
 }
 
+export type GlassButtonVariant = 'default' | 'primary' | 'secondary' | 'danger'
+
+const VARIANT_TINT: Record<GlassButtonVariant, [number, number, number] | undefined> = {
+  default: undefined,
+  primary: [0.18, 0.42, 0.95],
+  secondary: [0.55, 0.55, 0.60],
+  danger: [0.92, 0.22, 0.20],
+}
+
 export interface LiquidGlassButtonProps
   extends ButtonHTMLAttributes<HTMLButtonElement> {
   borderRadius?: number
@@ -21,6 +30,10 @@ export interface LiquidGlassButtonProps
   magnetStrength?: number
   /** Max magnetic offset in px before rubber-band caps out. Default 8. */
   magnetMax?: number
+  /** Button colour variant. Default = no tint. */
+  variant?: GlassButtonVariant
+  /** Custom tint colour [r,g,b] 0–1. Overrides variant. */
+  tintColor?: [number, number, number]
 }
 
 export const LiquidGlassButton = forwardRef<
@@ -36,6 +49,8 @@ export const LiquidGlassButton = forwardRef<
       pressScale = 1.02,
       magnetStrength = 0.45,
       magnetMax = 8,
+      variant = 'default',
+      tintColor: tintColorProp,
       className,
       style,
       onPointerDown,
@@ -47,12 +62,14 @@ export const LiquidGlassButton = forwardRef<
     const btnRef = useRef<HTMLButtonElement | null>(null)
     const [pressed, setPressed] = useState(false)
 
+    const resolvedTint = tintColorProp ?? VARIANT_TINT[variant]
     const glassOptions: UseLiquidGlassOptions = {
       borderRadius,
       initialLocked,
       thickness,
       layer,
       pressed,
+      tintColor: resolvedTint,
     }
     const { ref: glassRef, locked, setLocked } =
       useLiquidGlass(glassOptions)
