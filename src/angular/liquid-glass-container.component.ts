@@ -192,12 +192,14 @@ export class LiquidGlassContainerComponent
         this.snapshotCtx.drawImage(captureCanvas, 0, 0)
 
         const rect = el.getBoundingClientRect()
+        const sx = window.scrollX || document.documentElement.scrollLeft || 0
+        const sy = window.scrollY || document.documentElement.scrollTop || 0
         this.capturedOffset = {
-          x: rect.left + window.scrollX,
-          y: rect.top + window.scrollY,
+          x: rect.left + sx,
+          y: rect.top + sy,
         }
-      } catch {
-        // capture failed
+      } catch (e) {
+        console.warn('[LiquidGlass] bg capture failed:', e)
       }
       capturing = false
       if (queued) {
@@ -229,9 +231,12 @@ export class LiquidGlassContainerComponent
     })
 
     window.addEventListener('scroll', onScroll, { passive: true })
+    document.addEventListener('scroll', onScroll, { passive: true })
     window.addEventListener('resize', onResize)
-    this.removeScrollListener = () =>
+    this.removeScrollListener = () => {
       window.removeEventListener('scroll', onScroll)
+      document.removeEventListener('scroll', onScroll)
+    }
     this.removeResizeListener = () =>
       window.removeEventListener('resize', onResize)
   }
@@ -274,8 +279,10 @@ export class LiquidGlassContainerComponent
       }
 
       if (this.snapshot.width > 0 && this.snapshot.height > 0) {
-        const srcX = Math.max(0, window.scrollX - this.capturedOffset.x)
-        const srcY = Math.max(0, window.scrollY - this.capturedOffset.y)
+        const sx = window.scrollX || document.documentElement.scrollLeft || 0
+        const sy = window.scrollY || document.documentElement.scrollTop || 0
+        const srcX = Math.max(0, sx - this.capturedOffset.x)
+        const srcY = Math.max(0, sy - this.capturedOffset.y)
         ctx.drawImage(this.snapshot, srcX, srcY, w, h, 0, 0, w, h)
       }
 

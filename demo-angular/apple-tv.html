@@ -2,11 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>Liquid Glass — Apple TV Demo (Angular)</title>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { width: 100%; height: 100%; }
+:root { --sal: env(safe-area-inset-left); --sar: env(safe-area-inset-right); }
+html { width: 100%; height: 100%; -webkit-text-size-adjust: 100%; background: #0d0d1a; }
+body { width: 100%; height: 100%; overflow-x: hidden; background: #0d0d1a; }
 body { font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', Helvetica, sans-serif; }
 
 /* ── Fixed background image ──────────────────── */
@@ -14,12 +16,13 @@ body { font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', Helvetica
   position: fixed; inset: 0; z-index: 0;
   background: url('./images/bg.jpg') center/cover no-repeat;
   background-color: #0d0d1a;
+  min-height: 100vh; min-height: 100dvh;
 }
 
 /* ── Scrollable page content ─────────────────── */
 .page-content {
   position: relative; z-index: 1;
-  min-height: 100vh;
+  min-height: 100vh; min-height: 100dvh;
   color: white;
   padding: 80px 48px 0;
 }
@@ -105,10 +108,11 @@ body { font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', Helvetica
 
 /* ── Search bar ─────────────────────────────── */
 .search-area {
-  position: fixed; top: 24px; right: 48px;
+  position: fixed; top: calc(24px + env(safe-area-inset-top)); right: calc(48px + env(safe-area-inset-right));
   z-index: 25; pointer-events: auto;
   display: flex; align-items: center; gap: 8px;
 }
+.search-input { width: 360px; }
 .search-icon {
   position: absolute; left: 12px; top: 50%;
   transform: translateY(-50%);
@@ -131,7 +135,7 @@ body { font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', Helvetica
 /* ── Info card layout ────────────────────────── */
 .card-area {
   position: fixed; bottom: 0; left: 0; right: 0;
-  z-index: 15; padding: 0 48px 40px;
+  z-index: 15; padding: 0 calc(48px + env(safe-area-inset-right)) calc(40px + env(safe-area-inset-bottom)) calc(48px + env(safe-area-inset-left));
   pointer-events: none;
 }
 .card-area > * { pointer-events: auto; }
@@ -185,6 +189,67 @@ body { font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', Helvetica
   width: 18px; height: 18px; display: inline-flex;
   align-items: center; justify-content: center;
   font-size: 14px;
+}
+
+/* ── Tablet ≤768px ──────────────────────────── */
+@media (max-width: 768px) {
+  .page-content { padding: 70px 28px 0; }
+  .page-content h1 { font-size: 2.5rem; }
+  .page-content .subtitle { max-width: 100%; }
+  .show-grid { gap: 18px; }
+  .section-title { font-size: 1.15rem; }
+
+  .search-area { right: calc(28px + env(safe-area-inset-right)); }
+  .search-input { width: 280px; }
+
+  .card-area { padding: 0 calc(28px + env(safe-area-inset-right)) calc(32px + env(safe-area-inset-bottom)) calc(28px + env(safe-area-inset-left)); }
+  .info-card-inner { gap: 20px; padding: 20px 22px; }
+  .thumbnail { width: 130px; height: 100px; }
+  .actions liquid-glass-button { min-width: 150px; }
+  .footer-inner { padding: 14px 20px; }
+}
+
+/* ── Mobile ≤480px ──────────────────────────── */
+@media (max-width: 480px) {
+  .page-content { padding: 60px 16px 0; }
+  .page-content h1 { font-size: 1.8rem; margin-bottom: 10px; }
+  .page-content .subtitle {
+    font-size: 1rem; max-width: 100%;
+    margin-bottom: 24px;
+  }
+  .show-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px; margin-bottom: 28px;
+  }
+  .show-card { padding: 10px 12px; border-radius: 12px; }
+  .show-label { font-size: 0.75rem; }
+  .section-title { font-size: 1.05rem; margin-bottom: 12px; }
+
+  .search-area { top: calc(16px + env(safe-area-inset-top)); left: calc(16px + env(safe-area-inset-left)); right: calc(16px + env(safe-area-inset-right)); }
+  .search-input { flex: 1; min-width: 0; }
+
+  .card-area { padding: 0 calc(16px + env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left)); }
+  .tabs-row { padding-left: 0; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  .info-card-inner {
+    flex-direction: column; gap: 14px;
+    padding: 16px; align-items: stretch;
+  }
+  .thumbnail {
+    width: 100%; height: 120px;
+    border-radius: 10px;
+  }
+  .meta h2 { font-size: 1.15rem; }
+  .meta p { -webkit-line-clamp: 3; }
+  .actions {
+    flex-direction: row; gap: 8px;
+    align-self: stretch;
+  }
+  .actions liquid-glass-button {
+    min-width: 0; flex: 1;
+  }
+  .footer-inner { padding: 12px 16px; font-size: 0.78rem; }
+  .footer-marker { height: 40px; }
 }
 </style>
 </head>

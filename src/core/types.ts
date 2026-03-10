@@ -44,7 +44,7 @@ export interface ComponentAnimState {
 export const DEFAULT_GLASS_PARAMS: GlassParams = {
   blend: 20,
   dispStr: 0.028,
-  aberr: 0.006,
+  aberr: 0.00,
   refr: 3.5,
   bgCaptureInterval: 16,
   glassBlur: 20,

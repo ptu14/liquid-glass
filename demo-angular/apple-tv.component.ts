@@ -114,7 +114,7 @@ const CONTINUE: ContinueShow[] = [
             [thickness]="0.35"
             [layer]="1"
             placeholder="Search shows, movies, and more…"
-            [style.width.px]="360">
+            class="search-input">
             <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                  stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="11" cy="11" r="8"/>
@@ -226,9 +226,13 @@ export class AppleTVComponent implements AfterViewInit, OnDestroy {
         const glass = this.footerGlassRef?.nativeElement
         if (marker && glass) {
           const r = marker.getBoundingClientRect()
+          const vw = window.innerWidth
+          const pad = vw <= 480 ? 16 : vw <= 768 ? 28 : 48
+          const saL = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--sal') || '0', 10)
+          const saR = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--sar') || '0', 10)
           glass.style.top = `${r.top}px`
-          glass.style.left = '48px'
-          glass.style.right = '48px'
+          glass.style.left = `${pad + saL}px`
+          glass.style.right = `${pad + saR}px`
         }
         this.rafId = requestAnimationFrame(update)
       }

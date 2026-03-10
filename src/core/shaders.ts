@@ -132,7 +132,7 @@ void main() {
   dispUV = clamp(dispUV, 0.001, 0.999);
 
   // 4. Frosted glass — bg is already pre-blurred via two-pass Gaussian
-  float glassMask = smoothstep(2.0, -4.0, field);
+  float glassMask = smoothstep(1.0, -3.0, field);
 
   vec3 col = sampleBg(dispUV);
 
@@ -184,9 +184,7 @@ void main() {
   float tintDark = mix(0.88, 0.62, tintInf);
   col = mix(col, col * tintDark + tintCol * tintInf * 0.55, step(0.001, tintInf) * glassMask);
 
-  // 7. Subtle surface grain (frosted texture)
-  float grain = (hash(pxDOM + fract(u_time * 0.5)) - 0.5) * 0.04 * tintMask;
-  col += grain;
+  // 7. (grain removed — Gaussian blur provides sufficient frost)
 
   // 8. Rim highlight at shape boundary
   float rim = smoothstep(2.5, 0.0, abs(field));
@@ -196,8 +194,8 @@ void main() {
   float innerShadow = smoothstep(0.0, -18.0, field) * (1.0 - smoothstep(-18.0, -40.0, field));
   col -= innerShadow * 0.06 * thickness;
 
-  // 10. Alpha with subpixel AA
-  float fw    = fwidth(field);
+  // 10. Alpha with subpixel AA (1.5× width for smoother edges on high-DPI)
+  float fw    = fwidth(field) * 1.5;
   float alpha = smoothstep(fw, -fw, field);
 
   gl_FragColor = vec4(col, alpha);
