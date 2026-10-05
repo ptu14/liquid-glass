@@ -8,9 +8,9 @@ import {
   LiquidGlassContainerComponent,
   LiquidGlassButtonComponent,
   LiquidGlassInputComponent,
-} from '../src/angular'
+} from '@daniluk/liquid-glass-angular'
 
-import type { GlassButtonVariant } from '../src/angular'
+import type { GlassButtonVariant } from '@daniluk/liquid-glass-angular'
 
 interface BtnDef {
   label: string

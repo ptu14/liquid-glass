@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Liquid Glass – vanilla</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+      color: #fff;
+      /* Same image as `bgImage`, so the glass and the page agree */
+      background: #0b1620 url(./images/photo-lake.jpg) center / cover fixed;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Content behind the glass — captured by SnapDOM (bgElement) */
+    /* Full-width wrapper is the captured bgElement; inner column is centred */
+    #page { min-height: 100vh; }
+    #content { padding: 120px 20px 160px; max-width: 720px; margin: 0 auto; }
+    h1 { font-size: clamp(40px, 9vw, 72px); line-height: 1; margin: 0 0 16px; letter-spacing: -0.03em; }
+    p { font-size: 18px; line-height: 1.5; opacity: 0.9; }
+    .stripes { display: flex; gap: 8px; margin: 32px 0; }
+    .stripes div { flex: 1; height: 90px; border-radius: 14px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+    .tile {
+      aspect-ratio: 1; border-radius: 18px; display: grid; place-items: center;
+      font-weight: 700; font-size: 28px; color: #0b1620;
+    }
+
+    /* Glass elements — transparent DOM; the WebGL canvas draws the glass */
+    .glass { position: fixed; z-index: 20; color: #fff; }
+    #nav {
+      top: max(12px, env(safe-area-inset-top)); left: 12px; right: 12px;
+      height: 56px; border-radius: 28px;
+      display: flex; align-items: center; justify-content: space-between; padding: 0 20px;
+      font-weight: 600;
+    }
+    #dock {
+      left: 50%; transform: translateX(-50%);
+      bottom: max(16px, env(safe-area-inset-bottom));
+      width: min(360px, calc(100% - 32px)); height: 76px; border-radius: 38px;
+      display: flex; align-items: center; justify-content: space-around; padding: 0 10px;
+    }
+    #dock button {
+      position: relative; z-index: 21;
+      width: 56px; height: 56px; border-radius: 28px; border: 0;
+      background: transparent; color: #fff; font-size: 22px; cursor: pointer;
+    }
+    #blob {
+      top: 40%; left: calc(50% - 50px);
+      width: 100px; height: 100px; border-radius: 50px;
+      touch-action: none; cursor: grab;
+      display: grid; place-items: center; font-size: 13px; font-weight: 600; user-select: none;
+    }
+    #blob2 {
+      top: calc(40% + 140px); left: calc(50% - 60px);
+      width: 120px; height: 120px; border-radius: 60px; pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="page">
+  <main id="content">
+    <h1>Liquid Glass<br />from one import</h1>
+    <p>
+      No bundler, no framework. The library loads as a single ES module file,
+      exactly as it would from <code>cdn.jsdelivr.net</code>. Scroll, drag the
+      bubble and press the dock buttons.
+    </p>
+    <div class="stripes">
+      <div style="background:#ff5f57"></div>
+      <div style="background:#febc2e"></div>
+      <div style="background:#28c840"></div>
+      <div style="background:#0a84ff"></div>
+      <div style="background:#bf5af2"></div>
+    </div>
+    <div class="grid">
+      <div class="tile" style="background:#ffd60a">A</div>
+      <div class="tile" style="background:#64d2ff">B</div>
+      <div class="tile" style="background:#ff9f0a">C</div>
+      <div class="tile" style="background:#30d158">D</div>
+      <div class="tile" style="background:#ff375f">E</div>
+      <div class="tile" style="background:#5e5ce6">F</div>
+    </div>
+    <p>
+      This content is captured with SnapDOM and fed to the shader as the
+      background. The glass refracts it at the rim, and the two bubbles melt
+      into one when they get close.
+    </p>
+    <p style="height: 60vh"></p>
+    <p>End of page.</p>
+  </main>
+  </div>
+
+  <nav id="nav" class="glass"><span>LiquidGlass</span><span>CDN demo</span></nav>
+  <div id="blob" class="glass">drag me</div>
+  <div id="blob2" class="glass"></div>
+  <div id="dock" class="glass">
+    <button aria-label="Home">⌂</button>
+    <button aria-label="Search">⌕</button>
+    <button aria-label="Favourites">♡</button>
+    <button aria-label="Profile">◉</button>
+  </div>
+
+  <script type="module">
+    // From the CDN:
+    // import { LiquidGlass } from 'https://cdn.jsdelivr.net/npm/@daniluk/liquid-glass'
+    // Local build (npm run build:core):
+    import { LiquidGlass } from '../../packages/core/dist/liquid-glass.browser.js'
+
+    const glass = new LiquidGlass({
+      bgImage: './images/photo-lake.jpg',
+      bgElement: document.getElementById('page'),
+      params: { blend: 24 },
+    })
+
+    glass.add(document.getElementById('nav'))
+    glass.add(document.getElementById('dock'), { frost: 0.25 })
+    for (const btn of document.querySelectorAll('#dock button')) {
+      glass.add(btn, { layer: 1, thickness: 0.35, pressable: true })
+    }
+    glass.add(document.getElementById('blob'), { metaball: true, blend: 40, pressable: true })
+    glass.add(document.getElementById('blob2'), { metaball: true, blend: 40, tint: [0.2, 0.55, 1] })
+
+    // Drag the blob (pointer events work for mouse + touch)
+    const blob = document.getElementById('blob')
+    let start = null
+    blob.addEventListener('pointerdown', (e) => {
+      const r = blob.getBoundingClientRect()
+      start = { dx: e.clientX - r.left, dy: e.clientY - r.top }
+      blob.setPointerCapture(e.pointerId)
+      blob.style.cursor = 'grabbing'
+    })
+    blob.addEventListener('pointermove', (e) => {
+      if (!start) return
+      blob.style.left = `${e.clientX - start.dx}px`
+      blob.style.top = `${e.clientY - start.dy}px`
+    })
+    blob.addEventListener('pointerup', () => {
+      start = null
+      blob.style.cursor = 'grab'
+    })
+
+    window.glass = glass // for tweaking in the console: glass.setParams({ refr: 6 })
+  </script>
+</body>
+</html>

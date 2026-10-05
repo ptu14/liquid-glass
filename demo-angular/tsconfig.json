@@ -2,10 +2,11 @@
   "extends": "../tsconfig.json",
   "compilerOptions": {
     "experimentalDecorators": true,
+    "noEmit": false,
     "declaration": false,
     "declarationDir": null,
     "outDir": null
   },
-  "include": [".", "../src"],
+  "include": [".", "../packages/core/src", "../packages/angular/src"],
   "exclude": ["node_modules"]
 }

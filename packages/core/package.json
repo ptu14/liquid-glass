@@ -1,0 +1,59 @@
+{
+  "name": "@daniluk/liquid-glass",
+  "version": "0.0.1",
+  "description": "Apple-style liquid glass for the web: a WebGL renderer that refracts the live DOM behind your elements. Framework-free core.",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./browser": "./dist/liquid-glass.browser.js",
+    "./package.json": "./package.json"
+  },
+  "jsdelivr": "./dist/liquid-glass.browser.js",
+  "unpkg": "./dist/liquid-glass.browser.js",
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch"
+  },
+  "dependencies": {
+    "@zumer/snapdom": "^3.3.0"
+  },
+  "keywords": [
+    "liquid-glass",
+    "glass",
+    "glassmorphism",
+    "webgl",
+    "shader",
+    "refraction",
+    "ui"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ptu14/liquid-glass.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://github.com/ptu14/liquid-glass/tree/main/packages/core#readme",
+  "bugs": {
+    "url": "https://github.com/ptu14/liquid-glass/issues"
+  },
+  "author": "Mateusz Daniluk",
+  "publishConfig": {
+    "access": "public"
+  }
+}

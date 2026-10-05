@@ -1,0 +1,19 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "../../tmp/out-tsc/angular",
+    "declaration": true,
+    "declarationMap": true,
+    "inlineSources": true,
+    "experimentalDecorators": true,
+    "useDefineForClassFields": false,
+    "lib": ["DOM", "DOM.Iterable", "ES2022"],
+    "target": "ES2022"
+  },
+  "angularCompilerOptions": {
+    "compilationMode": "partial",
+    "strictTemplates": true,
+    "strictInjectionParameters": true
+  },
+  "include": ["src"]
+}

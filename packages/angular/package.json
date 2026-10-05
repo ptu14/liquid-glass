@@ -1,0 +1,40 @@
+{
+  "name": "@daniluk/liquid-glass-angular",
+  "version": "0.0.1",
+  "description": "Angular standalone components and directives for @daniluk/liquid-glass — Apple-style liquid glass rendered with WebGL.",
+  "scripts": {
+    "build": "ng-packagr -p ng-package.json -c tsconfig.lib.json"
+  },
+  "dependencies": {
+    "@daniluk/liquid-glass": "0.0.1",
+    "tslib": "^2.6.0"
+  },
+  "peerDependencies": {
+    "@angular/common": ">=17.0.0",
+    "@angular/core": ">=17.0.0",
+    "@angular/forms": ">=17.0.0"
+  },
+  "keywords": [
+    "angular",
+    "liquid-glass",
+    "glass",
+    "glassmorphism",
+    "webgl",
+    "components"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ptu14/liquid-glass.git",
+    "directory": "packages/angular"
+  },
+  "homepage": "https://github.com/ptu14/liquid-glass/tree/main/packages/angular#readme",
+  "bugs": {
+    "url": "https://github.com/ptu14/liquid-glass/issues"
+  },
+  "author": "Mateusz Daniluk",
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  }
+}
