@@ -18,7 +18,8 @@
     "example:vanilla": "npm run build:core && vite examples/vanilla",
     "changeset": "changeset",
     "version-packages": "changeset version",
-    "release": "npm run build && npm publish -w @daniluk/liquid-glass -w @daniluk/liquid-glass-react && npm publish ./packages/angular/dist"
+    "release": "npm run build && npm publish -w @daniluk/liquid-glass -w @daniluk/liquid-glass-react && npm publish ./packages/angular/dist",
+    "pages:build": "sh scripts/build-pages.sh"
   },
   "devDependencies": {
     "@analogjs/vite-plugin-angular": "^1.22.5",

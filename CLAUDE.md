@@ -11,6 +11,7 @@ npm run typecheck        # tsc --noEmit over packages/*/src (paths → sources)
 npm run demo             # React demo, vite, port 5173
 npm run demo:angular     # Angular demo, vite + analog, port 5174
 npm run example:vanilla  # builds core, serves examples/vanilla (no-bundler CDN-style page)
+npm run pages:build      # demos → site/ (React at /, Angular at /angular/, vanilla at /vanilla/); .github/workflows/pages.yml deploys on push to main
 npx changeset            # record a change; `npm run version-packages`, `npm run release` to publish
 ```
 

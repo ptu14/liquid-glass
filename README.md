@@ -2,6 +2,8 @@
 
 Apple-style **liquid glass** for the web. A WebGL shader refracts the live page behind your elements: rounded-rect SDFs, physically based rim refraction, liquid merging between neighbours, frost, tint and specular highlights. The elements themselves stay ordinary, interactive DOM.
 
+**[Live demo](https://ptu14.github.io/liquid-glass/)** · [Angular](https://ptu14.github.io/liquid-glass/angular/) · [Vanilla / CDN](https://ptu14.github.io/liquid-glass/vanilla/)
+
 | Package | | |
 | --- | --- | --- |
 | [`@daniluk/liquid-glass`](packages/core) | Framework-free core: renderer, background capture, vanilla `LiquidGlass` API, CDN build | [README](packages/core/README.md) |
@@ -60,6 +62,7 @@ npm run demo:angular      # Angular demo      → http://localhost:5174
 npm run example:vanilla   # CDN-style example → builds core, then serves examples/vanilla
 npm run typecheck
 npm run build             # core (tsup) → react (tsup) → angular (ng-packagr)
+npm run pages:build       # all demos → site/ (deployed to GitHub Pages on push to main)
 ```
 
 The demos import the packages by name; `vite.aliases.ts` points those names at `packages/*/src`, so edits hot-reload without a rebuild. Add `--host` to a demo command to open it from a phone on the same network.
