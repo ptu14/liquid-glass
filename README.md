@@ -2,8 +2,7 @@
 
 Apple-style **liquid glass** for the web. A WebGL shader refracts the live page behind your elements: rounded-rect SDFs, physically based rim refraction, liquid merging between neighbours, frost, tint and specular highlights. The elements themselves stay ordinary, interactive DOM.
 
-**[Live demo](https://ptu14.github.io/liquid-glass/)** · [Angular](https://ptu14.github.io/liquid-glass/angular/) · [Vanilla / CDN](https://ptu14.github.io/liquid-glass/vanilla/)
-
+**[Live demo](https://liquid-glass-six-fawn.vercel.app/)**
 | Package | | |
 | --- | --- | --- |
 | [`@daniluk/liquid-glass`](packages/core) | Framework-free core: renderer, background capture, vanilla `LiquidGlass` API, CDN build | [README](packages/core/README.md) |
